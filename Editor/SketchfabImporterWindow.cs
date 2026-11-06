@@ -191,7 +191,7 @@ public class SketchfabImporterWindow : EditorWindow
 
     private static async Task DownloadArchiveAsync(string url, string destinationPath, Action<float> progressCallback)
     {
-        using var request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbGET);
+        using var request = UnityWebRequest.Get(url);
         request.downloadHandler = new DownloadHandlerFile(destinationPath);
 
         var op = request.SendWebRequest();
@@ -203,28 +203,52 @@ public class SketchfabImporterWindow : EditorWindow
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            throw new InvalidOperationException($"Failed to download archive: {request.error}");
+            throw new InvalidOperationException($"Failed to download archive [{request.responseCode}]: {request.error}");
+        }
+
+        var downloadedFile = new FileInfo(destinationPath);
+        if (!downloadedFile.Exists || downloadedFile.Length == 0)
+        {
+            throw new InvalidOperationException($"Download completed but resulted in an empty file at '{destinationPath}'. Response code: {request.responseCode}");
         }
     }
 
     private static void ExtractZipArchive(string zipFilePath, string extractDirectory)
     {
-        if (!Directory.Exists(extractDirectory))
+        var fullExtractDir = Path.GetFullPath(extractDirectory);
+        if (!Directory.Exists(fullExtractDir))
         {
-            Directory.CreateDirectory(extractDirectory);
+            Directory.CreateDirectory(fullExtractDir);
         }
 
+        var fileInfo = new FileInfo(zipFilePath);
+        if (!fileInfo.Exists || fileInfo.Length == 0)
+        {
+            throw new InvalidOperationException($"Downloaded zip file is missing or empty at '{zipFilePath}'.");
+        }
+
+        int extractedCount = 0;
         using var archive = ZipFile.OpenRead(zipFilePath);
         foreach (var entry in archive.Entries)
         {
-            if (string.IsNullOrEmpty(entry.Name))
+            var cleanEntryPath = entry.FullName.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
+            if (string.IsNullOrEmpty(cleanEntryPath))
             {
-                var dirPath = Path.Combine(extractDirectory, entry.FullName);
-                Directory.CreateDirectory(dirPath);
                 continue;
             }
 
-            var destinationPath = Path.Combine(extractDirectory, entry.FullName);
+            var destinationPath = Path.GetFullPath(Path.Combine(fullExtractDir, cleanEntryPath));
+            if (!destinationPath.StartsWith(fullExtractDir, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Archive entry '{entry.FullName}' attempted path traversal outside target directory.");
+            }
+
+            if (string.IsNullOrEmpty(entry.Name) || cleanEntryPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
             var entryDir = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrEmpty(entryDir) && !Directory.Exists(entryDir))
             {
@@ -232,12 +256,19 @@ public class SketchfabImporterWindow : EditorWindow
             }
 
             entry.ExtractToFile(destinationPath, overwrite: true);
+            extractedCount++;
+        }
+
+        if (extractedCount == 0)
+        {
+            throw new InvalidOperationException($"Extraction failed: archive '{zipFilePath}' contained 0 extractable files.");
         }
     }
 
     private static void AppendCredit(string creditsPath, ModelInfo model, string localPath)
     {
-        var directory = Path.GetDirectoryName(creditsPath);
+        var fullCreditsPath = Path.GetFullPath(creditsPath);
+        var directory = Path.GetDirectoryName(fullCreditsPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
@@ -260,7 +291,7 @@ public class SketchfabImporterWindow : EditorWindow
         var dateStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         var sb = new StringBuilder();
-        if (!File.Exists(creditsPath))
+        if (!File.Exists(fullCreditsPath))
         {
             sb.AppendLine("# Third-Party Credits");
             sb.AppendLine();
@@ -280,7 +311,7 @@ public class SketchfabImporterWindow : EditorWindow
         sb.AppendLine($"- **Imported:** {dateStr}");
         sb.AppendLine();
 
-        File.AppendAllText(creditsPath, sb.ToString(), Encoding.UTF8);
+        File.AppendAllText(fullCreditsPath, sb.ToString(), Encoding.UTF8);
     }
 
     [Serializable]
