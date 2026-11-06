@@ -14,6 +14,8 @@ public class SketchfabImporterWindow : EditorWindow
     private const string ApiTokenPrefKey = "Sketchfab_ApiToken";
     private const string DefaultDownloadFolder = "Assets/ImportedModels";
     private const string DefaultCreditsPath = "Assets/CREDITS.md";
+    private const string GlTFastGitUrl = "https://github.com/atteneder/glTFast.git";
+    private const string GlTFastWebUrl = "https://github.com/atteneder/glTFast";
 
     private string apiToken = "";
     private string modelUrlOrUid = "";
@@ -25,7 +27,7 @@ public class SketchfabImporterWindow : EditorWindow
     public static void ShowWindow()
     {
         var window = GetWindow<SketchfabImporterWindow>("Sketchfab Importer");
-        window.minSize = new Vector2(450, 280);
+        window.minSize = new Vector2(480, 340);
     }
 
     private void OnEnable()
@@ -38,6 +40,23 @@ public class SketchfabImporterWindow : EditorWindow
         EditorGUILayout.Space(8);
         EditorGUILayout.LabelField("Sketchfab Downloader & Attribution Tool", EditorStyles.boldLabel);
         EditorGUILayout.Space(4);
+
+        if (!IsGlTFastInstalled())
+        {
+            EditorGUILayout.HelpBox("Recommended: glTFast is recommended to compile and render imported glTF models in Unity.", MessageType.Warning);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Install glTFast via Package Manager", GUILayout.Height(24)))
+                {
+                    InstallGlTFast();
+                }
+                if (GUILayout.Button("Open glTFast GitHub", GUILayout.Height(24)))
+                {
+                    Application.OpenURL(GlTFastWebUrl);
+                }
+            }
+            EditorGUILayout.Space(4);
+        }
 
         EditorGUI.BeginChangeCheck();
         apiToken = EditorGUILayout.PasswordField("API Token", apiToken);
@@ -65,6 +84,35 @@ public class SketchfabImporterWindow : EditorWindow
                 RunImportProcess();
             }
         }
+    }
+
+    private static bool IsGlTFastInstalled()
+    {
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .Any(a => a.GetName().Name.IndexOf("glTFast", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private void InstallGlTFast()
+    {
+        var request = UnityEditor.PackageManager.Client.Add(GlTFastGitUrl);
+        EditorApplication.CallbackFunction checkProgress = null;
+        checkProgress = () =>
+        {
+            if (request.IsCompleted)
+            {
+                EditorApplication.update -= checkProgress;
+                if (request.Status == UnityEditor.PackageManager.StatusCode.Success)
+                {
+                    EditorUtility.DisplayDialog("glTFast Installed", "glTFast was successfully installed via Unity Package Manager!", "OK");
+                    Repaint();
+                }
+                else if (request.Status >= UnityEditor.PackageManager.StatusCode.Failure)
+                {
+                    throw new InvalidOperationException($"Failed to install glTFast: {request.Error.message}");
+                }
+            }
+        };
+        EditorApplication.update += checkProgress;
     }
 
     private async void RunImportProcess()

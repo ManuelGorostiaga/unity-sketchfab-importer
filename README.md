@@ -13,11 +13,19 @@ A Unity Editor tool that downloads, extracts, and automatically adds CC/attribut
    ```
 5. Click **Add**.
 
-## Prerequisites
+## Recommended glTF Package
 
-Sketchfab provides model downloads in `.gltf` / `.bin` archive format. To ensure Unity automatically renders and compiles glTF models upon import, install a glTF importer in your project, such as:
-- **glTFast** (`com.unity.cloud.gltfast` or via OpenUPM)
-- **UnityGLTF**
+Sketchfab provides 3D models in glTF archive format (`.gltf` / `.bin` / textures). To ensure Unity automatically compiles, renders, and creates Prefabs/Materials from imported glTF models, install the recommended glTF importer:
+
+- **glTFast**: [https://github.com/atteneder/glTFast](https://github.com/atteneder/glTFast)
+- **Git URL**: `https://github.com/atteneder/glTFast.git`
+
+### Installing glTFast
+- **Via the Tool**: Open **Tools > Sketchfab Importer** and click **Install glTFast**.
+- **Via Package Manager**: In Unity, go to **Window > Package Manager** > **+** > **Add package from git URL...** and paste:
+  ```text
+  https://github.com/atteneder/glTFast.git
+  ```
 
 ## Usage
 
