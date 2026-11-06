@@ -9,7 +9,7 @@ A Unity Editor tool that downloads, extracts, and automatically adds CC/attribut
 3. Click the **+** icon in the upper-left corner and select **Add package from git URL...**.
 4. Enter the Git repository URL:
    ```text
-   https://github.com/gorostiagamanuel/unity-sketchfab-importer.git
+   https://github.com/ManuelGorostiaga/unity-sketchfab-importer.git
    ```
 5. Click **Add**.
 
