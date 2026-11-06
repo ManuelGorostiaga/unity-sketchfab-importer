@@ -1,0 +1,20 @@
+{
+  "name": "com.gorostiaga.sketchfab-importer",
+  "version": "1.0.0",
+  "displayName": "Sketchfab Importer",
+  "description": "Download, unzip, and automatically attribute 3D models from Sketchfab directly inside the Unity Editor.",
+  "unity": "2021.3",
+  "author": {
+    "name": "Manuel Gorostiaga",
+    "email": "gorostiagamanuel@gmail.com"
+  },
+  "keywords": [
+    "sketchfab",
+    "importer",
+    "downloader",
+    "credits",
+    "attribution",
+    "3d",
+    "models"
+  ]
+}
